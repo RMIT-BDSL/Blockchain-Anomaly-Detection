@@ -1,0 +1,13 @@
+pretrained: false
+checkpoint: "checkpoints/elliptic"
+
+model:
+  type: "ContrastiveGCN"
+  params:
+    hidden_channels: 64
+    out_channels: 32
+    num_layers: 2
+    dropout: 0.5
+    batchnorm: true
+    proj_hidden: 64
+    proj_out: 32

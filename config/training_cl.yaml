@@ -1,0 +1,19 @@
+data:
+  data_path: "data/elliptic/elliptic_data.pt"
+  weights_only: false
+
+training:
+  seed: 42
+  fold: 5
+  ratio: [0.8, 0.1, 0.1] # train, val, test
+  batch_size: 1024
+  pretrain_epochs: 50
+  finetune_epochs: 100
+  epochs: 1024
+  patience: 50
+
+optimizer:
+  type: adam
+  lr: 0.004
+  weight_decay: 0.0005
+  momentum: 0.9
