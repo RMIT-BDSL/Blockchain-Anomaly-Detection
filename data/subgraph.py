@@ -95,6 +95,6 @@ while len(temp) < n_samples_required:
         max_edges *= 2
 
 # Save results
-torch.save(temp, f"data/elliptic/elliptic_subgraphs.pt")
+torch.save(temp, f"datasets/elliptic/elliptic_subgraphs.pt")
 logger.info(f"Successfully saved {len(temp)} unique subgraphs to elliptic_subgraphs.pt")
 # -------------------- Save subgraph data --------------------

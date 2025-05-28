@@ -1,5 +1,5 @@
 data:
-  data_path: "data/elliptic/elliptic_data.pt"
+  data_path: "datasets/elliptic/elliptic_data.pt"
   weights_only: false
 
 training:

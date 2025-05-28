@@ -10,9 +10,9 @@ from datetime import timedelta
 #### Elliptic dataset ####
 def load_elliptic():
     raw_paths = [
-        'data/elliptic_bitcoin/raw/elliptic_txs_features.csv',
-        'data/elliptic_bitcoin/raw/elliptic_txs_edgelist.csv',
-        'data/elliptic_bitcoin/raw/elliptic_txs_classes.csv',
+        'datasets/elliptic_bitcoin/raw/elliptic_txs_features.csv',
+        'datasets/elliptic_bitcoin/raw/elliptic_txs_edgelist.csv',
+        'datasets/elliptic_bitcoin/raw/elliptic_txs_classes.csv',
     ]
     feat_df = pd.read_csv(raw_paths[0], header=None)
     edge_df = pd.read_csv(raw_paths[1])
@@ -44,7 +44,7 @@ def load_elliptic():
 def preprocess_ibm(num_obs):
     date_format = '%Y/%m/%d %H:%M'
 
-    data_df = pd.read_csv('data/IBM/HI-Small_Trans.csv')
+    data_df = pd.read_csv('datasets/IBM/HI-Small_Trans.csv')
     data_df['Timestamp'] = pd.to_datetime(data_df['Timestamp'], format=date_format)
     data_df.sort_values('Timestamp', inplace=True)
     data_df = data_df[data_df['Account']!= data_df['Account.1']]
@@ -80,10 +80,10 @@ def preprocess_ibm(num_obs):
                 source.append(row['index_1'])
                 target.append(row['index_2'])
 
-    pd.DataFrame({'txId1': source, 'txId2': target}).to_csv('data/IBM/edges.csv', index=False)
+    pd.DataFrame({'txId1': source, 'txId2': target}).to_csv('datasets/IBM/edges.csv', index=False)
 
 def load_ibm():
-    path = 'data/IBM'
+    path = 'datasets/IBM'
 
     df_features = pd.read_csv(path+'/HI-Small_Trans.csv')
     df_features['Timestamp'] = pd.to_datetime(df_features['Timestamp'], format='%Y/%m/%d %H:%M')
@@ -138,7 +138,7 @@ def load_ibm():
 
 #### Cora dataset ####
 def load_cora(y = 0, p_train = 0.6, p_val = 0.2):
-    path = './data/Planetoid'
+    path = './datasets/Planetoid'
     dataset = Planetoid(path, name='Cora')
     data = dataset[0]
 
