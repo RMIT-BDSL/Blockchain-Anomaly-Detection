@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import torch
 import logging
-from utils.network import network_AML
+from utils.ibm import network_AML
 from tqdm import tqdm
 from torch_geometric.datasets import Planetoid
 from datetime import timedelta
