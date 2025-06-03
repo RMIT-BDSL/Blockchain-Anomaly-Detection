@@ -11,6 +11,9 @@ training:
   finetune_epochs: 100
   epochs: 1024
   patience: 64
+  n_trials: 100
+
+device: "cuda:3"
 
 optimizer:
   type: adam
@@ -18,7 +21,6 @@ optimizer:
   weight_decay: 0.0005
   momentum: 0.9
 
-sampling:
-  max_nodes: 128
-  max_edges: 512
-  n_samples: 1000
+dataset:
+  type: elliptic
+  kwargs: {}

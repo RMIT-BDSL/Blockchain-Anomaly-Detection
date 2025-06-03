@@ -20,14 +20,16 @@ class BCDataset:
             **kwargs: Forwarded to dataset-specific loader.
         """
         self.type = type.lower()
+        transforms = {
+            'elliptic': self._load_elliptic,
+            'ibm': self._load_ibm
+        }
+        if self.type not in transforms:
+            raise ValueError(f"Unsupported dataset type: {self.type}. "
+                             f"Supported types: {list(transforms.keys())}")
+        transforms[self.type](**kwargs)
         
-        if self.type == "elliptic":
-            self._load_elliptic(**kwargs)
-        elif self.type == "ibm":
-            self._load_ibm(**kwargs)
-        else:
-            raise ValueError(f"Dataset type '{type}' is not supported.")
-    
+            
     def _load_elliptic(self,
                        path: str = "datasets/elliptic",
                        classes: dict = {'unknown': 2, '1': 1, '2': 0},
@@ -140,16 +142,31 @@ class BCDataset:
         self.val_mask = mask.clone(); self.val_mask[train_end:val_end] = True
         self.test_mask = mask.clone(); self.test_mask[val_end:] = True
     
-    def get_pyg_data(self) -> Data:
+    def get_masks(self):
         """
-        Wrap everything into a torch_geometric.data.Data object.
+        Returns the train, validation, and test masks.
         """
-        data = Data(
-            x=self.features,
-            y=self.labels,
-            edge_index=self.edge_index
+        if not hasattr(self, 'train_mask') or not hasattr(self, 'val_mask') or not hasattr(self, 'test_mask'):
+            raise AttributeError("Masks are not defined. Initialize the dataset first.")
+        return (
+            self.train_mask,
+            self.val_mask,
+            self.test_mask
         )
-        data.train_mask = self.train_mask
-        data.val_mask = self.val_mask
-        data.test_mask = self.test_mask
+        
+    def to_torch_data(self) -> Data:
+        """
+        Convert stored tensors (features, labels, edge_index, masks) into
+        a single torch_geometric.data.Data object.
+        """
+        x = self.features
+        y = self.labels
+        edge_index = self.edge_index
+
+        data = Data(x=x, y=y, edge_index=edge_index)
+
+        data.train_mask = self.train_mask.clone().to(torch.bool)
+        data.val_mask   = self.val_mask.clone().to(torch.bool)
+        data.test_mask  = self.test_mask.clone().to(torch.bool)
+
         return data
