@@ -33,6 +33,7 @@ class BCDataset:
     def _load_elliptic(self,
                        path: str = "datasets/elliptic",
                        classes: dict = {'unknown': 2, '1': 1, '2': 0},
+                       directed: bool = False,
                        time_splits: list = [30, 40]):
         """
         Load the Elliptic dataset into:
@@ -54,8 +55,26 @@ class BCDataset:
         mapped = class_df['class'].map(classes).astype(int)
         self.labels = torch.tensor(mapped.values, dtype=torch.long)
         
-        edges = edge_df[['txId1','txId2']].values.T
-        self.edge_index = torch.tensor(edges, dtype=torch.long)
+        nodes = feat_df['txId']
+        map_id = {j: i for i, j in enumerate(nodes)}
+
+        edges_df = edge_df[['txId1', 'txId2']].copy()
+
+        # Handle directionality
+        if not directed:
+            edges_rev = edges_df.rename(columns={'txId1': 'txId2', 'txId2': 'txId1'})
+            edges_df = pd.concat([edges_df, edges_rev], ignore_index=True)
+
+        edges_df['txId1'] = edges_df['txId1'].map(map_id)
+        edges_df['txId2'] = edges_df['txId2'].map(map_id)
+
+        # Drop invalid and redundant edges
+        edges_df = edges_df.dropna().astype(int)
+        edges_df = edges_df[edges_df['txId1'] != edges_df['txId2']]  # remove self-loops
+        edges_df = edges_df.drop_duplicates().reset_index(drop=True)
+
+        edge_index = torch.tensor(edges_df.values.T, dtype=torch.long)
+        self.edge_index = edge_index
         
         time_step = torch.tensor(feat_df['time_step'].values, dtype=torch.long)
         assert len(time_splits) == 2, "time_splits must have exactly two values"
