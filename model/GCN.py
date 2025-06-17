@@ -1,10 +1,9 @@
-from typing import Union
+from typing import Tuple
 
 from torch import Tensor
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.nn.init as init
 from torch_geometric.nn import GCNConv
 
 class GCN(nn.Module):
@@ -23,21 +22,32 @@ class GCN(nn.Module):
         self,
         in_channels: int,
         hidden_channels: int,
-        out_channels: int,
+        embedding_dim: int,
+        output_dim: int,
         num_layers: int,
         dropout: float,
         batchnorm: bool = True
-    ):
+    ) -> None:
+        """
+        Initialize the GCN model.
+        Args:
+          in_channels (int): Number of input features per node.
+          hidden_channels (int): Number of hidden units per layer.
+          embedding_dim (int): Dimension of the output embeddings.
+          output_dim (int): Number of output classes (0 for no output layer).
+          num_layers (int): Total number of GCNConv layers (>=1).
+          dropout (float): Dropout probability.
+          batchnorm (bool): Whether to apply BatchNorm1d after each hidden conv. Default: True.
+        """
         super(GCN, self).__init__()
         assert num_layers >= 1, "num_layers must be >= 1"
 
         self.convs = nn.ModuleList()
-        self.batchnorm = batchnorm
         self.bns = nn.ModuleList() if batchnorm else None
 
         if num_layers == 1:
             self.convs.append(
-                GCNConv(in_channels, out_channels, cached=True)
+                GCNConv(in_channels, embedding_dim, cached=True)
             )
         else:
             self.convs.append(
@@ -54,10 +64,12 @@ class GCN(nn.Module):
                     self.bns.append(nn.BatchNorm1d(hidden_channels))
 
             self.convs.append(
-                GCNConv(hidden_channels, out_channels, cached=True)
+                GCNConv(hidden_channels, embedding_dim, cached=True)
             )
 
         self.dropout = dropout
+        self.out = nn.Linear(embedding_dim, output_dim) if output_dim > 0 else None
+        self.batchnorm = batchnorm
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -68,19 +80,23 @@ class GCN(nn.Module):
         if self.batchnorm:
             for bn in self.bns:
                 bn.reset_parameters()
-        # Xavier init on any Linear (if present)
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                init.xavier_uniform_(m.weight)
-                if m.bias is not None:
-                    init.zeros_(m.bias)
+        # Xavier initialization
+        nn.init.xavier_uniform_(self.out.weight) if self.out else None
+        if self.out and self.out.bias is not None:
+            nn.init.zeros_(self.out.bias)
 
-    def forward(self, x: Tensor, edge_index: Tensor) -> Tensor:
-        for i, conv in enumerate(self.convs[:-1]):
+    def forward(self, x: Tensor, edge_index: Tensor) -> Tuple[Tensor, Tensor]:
+        for i, conv in enumerate(self.convs):
             x = conv(x, edge_index)
-            if self.batchnorm and len(self.bns) > i:
-                x = self.bns[i](x)
-            x = F.relu(x)
-            x = F.dropout(x, p=self.dropout, training=self.training)
-        x = self.convs[-1](x, edge_index)
-        return F.log_softmax(x, dim=1)
+
+            if i < len(self.convs) - 1:
+                if self.batchnorm:
+                    x = self.bns[i](x)
+                x = F.relu(x)
+                x = F.dropout(x, p=self.dropout, training=self.training)
+
+        h = x
+        out = self.out(h)
+        out = F.log_softmax(out, dim=1)
+
+        return out, h

@@ -13,11 +13,11 @@ training:
   patience: 64
   n_trials: 100
 
-device: "cuda:3"
+device: "cuda:2"
 
 optimizer:
   type: adam
-  lr: 0.01
+  lr: 0.004
   weight_decay: 0.0005
   momentum: 0.9
 

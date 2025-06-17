@@ -39,7 +39,7 @@ def GNN_features(
 
         if train_loader is None:
             optimizer.zero_grad()
-            out, _ = model(graph.x, graph.edge_index)
+            out, _ = model(graph.x, graph.edge_index.to(device))
             loss = criterion(out[train_mask], graph.y[train_mask])
             loss.backward()
             optimizer.step()
@@ -48,7 +48,7 @@ def GNN_features(
             for batch in train_loader:
                 batch = batch.to(device)
                 optimizer.zero_grad()
-                out, _ = model(batch.x, batch.edge_index)
+                out, _ = model(batch.x, batch.edge_index.to(device))
                 y_hat = out[: batch.batch_size]
                 y_true = batch.y[: batch.batch_size]
                 loss = criterion(y_hat, y_true)
@@ -128,27 +128,28 @@ def objective_gcn(trial, **kwargs):
     def _get(name, suggest_fn):
         return kwargs[name] if name in kwargs else suggest_fn()
 
-    hidden_dim    = _get('hidden_dim',    lambda: trial.suggest_int('hidden_dim',    64,   256))
-    embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 32,   128))
-    num_layers    = _get('num_layers',    lambda: trial.suggest_int('num_layers',    1,    3))
-    lr            = _get('lr',            lambda: trial.suggest_float('lr',          0.01, 0.1))
-    n_epochs      = _get('n_epochs',      lambda: trial.suggest_int('n_epochs',      5,    500))
+    graph = kwargs['graph']
+
+    hidden_dim    = _get('hidden_dim',    lambda: trial.suggest_int('hidden_dim',    64,   128))
+    embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 32,   64))
+    num_layers    = 2
+    lr            = 4e-3
+    n_epochs      = _get('n_epochs',      lambda: trial.suggest_int('n_epochs',      128,    1024))
     dropout       = _get('dropout',       lambda: trial.suggest_float('dropout',     0.0,  0.5))
-    in_channels   = _get('in_channels',   lambda: trial.suggest_int('in_channels',   16,   64))
-    out_channels  = _get('out_channels',  lambda: trial.suggest_int('out_channels',  16,   64))
+    in_channels   = graph.num_node_features
+    output_dim    = 2
     batchnorm     = _get('batchnorm',     lambda: trial.suggest_categorical('batchnorm', [True, False]))
 
     model_gcn = GCN(
         in_channels=in_channels,
         hidden_channels=hidden_dim,
-        out_channels=out_channels,
-        # embedding_dim=embedding_dim,
+        output_dim=output_dim,
+        embedding_dim=embedding_dim,
         num_layers=num_layers,
         dropout=dropout,
         batchnorm=batchnorm
     )
     
-    graph = kwargs['graph']
     masks = kwargs.get('masks', None)
     ap_loss = GNN_features(graph,
                            model_gcn,

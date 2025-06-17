@@ -5,6 +5,7 @@ import torch
 import logging
 import yaml
 from yaml import safe_load
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data.dataset import BCDataset
 from model import *
 from utils.objectives import *
@@ -48,7 +49,8 @@ if __name__ == "__main__":
                 trial,
                 graph     = data,
                 masks     = (train_mask, val_mask, test_mask),
-                device    = device
+                device    = device,
+                **m_config["model"]["params"],
             )
         study = optuna.create_study(direction="maximize")
         study.optimize(
