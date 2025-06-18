@@ -27,7 +27,7 @@ def GNN_features(
     model = model.to(device)
     graph = graph.to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=5e-4)  # Define optimizer.
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=kwargs.get('weight_decay', 0.0))
     criterion = nn.CrossEntropyLoss()  # Define loss function.
     
     train_losses = []
@@ -131,23 +131,22 @@ def objective_gcn(trial, **kwargs):
     graph = kwargs['graph']
 
     hidden_dim    = _get('hidden_dim',    lambda: trial.suggest_int('hidden_dim',    64,   128))
-    embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 32,   64))
-    num_layers    = 2
-    lr            = 4e-3
-    n_epochs      = _get('n_epochs',      lambda: trial.suggest_int('n_epochs',      128,    1024))
-    dropout       = _get('dropout',       lambda: trial.suggest_float('dropout',     0.0,  0.5))
+    embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 32,    64))
+    num_layers    = _get('num_layers',    lambda: trial.suggest_int('num_layers',     1,     3))
+    lr            = _get('lr',            lambda: trial.suggest_float('lr',        1e-2,  1e-1))
+    n_epochs      = _get('n_epochs',      lambda: trial.suggest_int('n_epochs',       5,   500))
+    # dropout       = _get('dropout',       lambda: trial.suggest_float('dropout',     0.0,  0.5))
     in_channels   = graph.num_node_features
     output_dim    = 2
-    batchnorm     = _get('batchnorm',     lambda: trial.suggest_categorical('batchnorm', [True, False]))
+    # batchnorm     = _get('batchnorm',     lambda: trial.suggest_categorical('batchnorm', [True, False]))
 
     model_gcn = GCN(
+        edge_index=graph.edge_index,
         in_channels=in_channels,
-        hidden_channels=hidden_dim,
+        hidden_dim=hidden_dim,
         output_dim=output_dim,
         embedding_dim=embedding_dim,
-        num_layers=num_layers,
-        dropout=dropout,
-        batchnorm=batchnorm
+        num_layers=num_layers
     )
     
     masks = kwargs.get('masks', None)

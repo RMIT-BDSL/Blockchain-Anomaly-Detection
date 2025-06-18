@@ -179,6 +179,9 @@ class BCDataset:
         a single torch_geometric.data.Data object.
         """
         x = self.features
+        if self.type == 'elliptic':
+            x = x[:, 1:94]  # Exclude 'time_step' & summary features
+            
         y = self.labels
         edge_index = self.edge_index
 

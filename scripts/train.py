@@ -23,8 +23,8 @@ if __name__ == "__main__":
         m_config = safe_load(f)
         
     logging.info("Starting training process...")
-    logging.info("Training configuration:\n%s", yaml.dump(t_config, sort_keys=False))
-    logging.info("Model configuration:\n%s", yaml.dump(m_config, sort_keys=False))
+    # logging.info("Training configuration:\n%s", yaml.dump(t_config, sort_keys=False))
+    # logging.info("Model configuration:\n%s", yaml.dump(m_config, sort_keys=False))
 
     dataset = BCDataset(
         type=t_config["dataset"]["type"],
@@ -50,7 +50,7 @@ if __name__ == "__main__":
                 graph     = data,
                 masks     = (train_mask, val_mask, test_mask),
                 device    = device,
-                **m_config["model"]["params"],
+                # **m_config["model"]["params"],
             )
         study = optuna.create_study(direction="maximize")
         study.optimize(
