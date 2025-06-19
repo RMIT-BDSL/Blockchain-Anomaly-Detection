@@ -13,13 +13,13 @@ class GCN(nn.Module):
         embedding_dim: int,
         output_dim: int = 2,
         num_layers: int = 3,
-        # dropout: float = 0.0,
-        # batchnorm: bool = False
+        dropout: float = 0.0,
+        batchnorm: bool = False
     ):
         super().__init__()
         self.edge_index   = edge_index
         self.num_layers     = num_layers
-        # self.dropout = dropout
+        self.dropout = dropout
 
         if num_layers == 1:
             self.conv1 = GCNConv(in_channels, embedding_dim)
@@ -36,13 +36,13 @@ class GCN(nn.Module):
     def forward(self, x: Tensor, edge_index: Tensor = None) -> tuple[Tensor, Tensor]:
         h = self.conv1(x, edge_index)
         h = F.relu(h)
-        # h = F.dropout(h, p=self.dropout, training=self.training)
+        h = F.dropout(h, p=self.dropout, training=self.training)
 
         if self.num_layers > 1:
             for conv in self.hidden_convs:
                 h = conv(h, edge_index)
                 h = F.relu(h)
-                # h = F.dropout(h, p=self.dropout, training=self.training)
+                h = F.dropout(h, p=self.dropout, training=self.training)
             h = self.conv2(h, edge_index)
 
         out = self.out(h)

@@ -39,11 +39,11 @@ if __name__ == "__main__":
     logging.info(f"Using device: {device}")
 
     train_mask, val_mask, test_mask = dataset.get_masks()
+    data = dataset.to_torch_data()
     task = m_config["model"]["type"]
     
     if task == "GCN":
         logging.info("Graph Convolutional Network (GCN) selected.")
-        data = dataset.to_torch_data()
         def wrapped_objective(trial: optuna.Trial):
             return objective_gcn(
                 trial,

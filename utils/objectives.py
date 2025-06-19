@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from torch_geometric.data import Data
 from torch.utils.data import DataLoader
 from sklearn.metrics import average_precision_score
-from optuna import Trial
 from model.GCN import GCN
 
 def GNN_features(
@@ -80,7 +79,7 @@ def GNN_features(
 
         try:
             ap = average_precision_score(labels.numpy(), probs.numpy()[:, 1])
-        except:
+        except Exception:
             preds = probs.argmax(dim=1)
             ap = (preds == labels).sum().item() / labels.size(0)
         return ap
@@ -88,12 +87,6 @@ def GNN_features(
     for _ in range(n_epochs):
         loss_train = train_epoch()
         train_losses.append(loss_train)
-
-        if (val_mask is not None) or (val_loader is not None):
-            ap_val = evaluate(val_loader, val_mask)
-        else:
-            ap_val = None
-        val_scores.append(ap_val)
 
     ap_test = evaluate(test_loader, test_mask)
     
@@ -130,12 +123,12 @@ def objective_gcn(trial, **kwargs):
 
     graph = kwargs['graph']
 
-    hidden_dim    = _get('hidden_dim',    lambda: trial.suggest_int('hidden_dim',    64,   128))
-    embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 32,    64))
+    hidden_dim    = _get('hidden_dim',    lambda: trial.suggest_int('hidden_dim',    64,   256))
+    embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 32,    128))
     num_layers    = _get('num_layers',    lambda: trial.suggest_int('num_layers',     1,     3))
     lr            = _get('lr',            lambda: trial.suggest_float('lr',        1e-2,  1e-1))
     n_epochs      = _get('n_epochs',      lambda: trial.suggest_int('n_epochs',       5,   500))
-    # dropout       = _get('dropout',       lambda: trial.suggest_float('dropout',     0.0,  0.5))
+    dropout       = _get('dropout',       lambda: trial.suggest_float('dropout',     0.0,  0.5))
     in_channels   = graph.num_node_features
     output_dim    = 2
     # batchnorm     = _get('batchnorm',     lambda: trial.suggest_categorical('batchnorm', [True, False]))
@@ -146,7 +139,8 @@ def objective_gcn(trial, **kwargs):
         hidden_dim=hidden_dim,
         output_dim=output_dim,
         embedding_dim=embedding_dim,
-        num_layers=num_layers
+        num_layers=num_layers,
+        dropout=dropout
     )
     
     masks = kwargs.get('masks', None)
