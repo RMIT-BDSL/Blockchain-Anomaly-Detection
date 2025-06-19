@@ -4,11 +4,12 @@ import optuna
 import torch
 import logging
 import yaml
+import argparse
+import numpy as np
 from yaml import safe_load
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data.dataset import BCDataset
-from model import *
-from utils.objectives import *
+from utils.objectives import objective_gcn
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,15 +17,30 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
+def parse_args():
+    # get logging level from command line arguments
+    parser = argparse.ArgumentParser(description="Train a model on the BC dataset.")
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Set the logging level."
+    )
+    args = parser.parse_args()
+    logging.getLogger().setLevel(args.log_level.upper())
+    return args
+
 if __name__ == "__main__":
+    args = parse_args()
     with open("config/training.yaml", "r") as f:
         t_config = safe_load(f)
     with open("config/model.yaml", "r") as f:
         m_config = safe_load(f)
-        
+
     logging.info("Starting training process...")
-    # logging.info("Training configuration:\n%s", yaml.dump(t_config, sort_keys=False))
-    # logging.info("Model configuration:\n%s", yaml.dump(m_config, sort_keys=False))
+    logging.info("Training configuration:\n%s", yaml.dump(t_config, sort_keys=False))
+    logging.info("Model configuration:\n%s", yaml.dump(m_config, sort_keys=False))
 
     dataset = BCDataset(
         type=t_config["dataset"]["type"],

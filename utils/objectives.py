@@ -88,6 +88,12 @@ def GNN_features(
         loss_train = train_epoch()
         train_losses.append(loss_train)
 
+        if (val_mask is not None) or (val_loader is not None):
+            ap_val = evaluate(val_loader, val_mask)
+        else:
+            ap_val = None
+        val_scores.append(ap_val)
+
     ap_test = evaluate(test_loader, test_mask)
     
     plot_path = kwargs.get('plot_path', None)
@@ -150,6 +156,7 @@ def objective_gcn(trial, **kwargs):
                            n_epochs,
                            train_mask=masks[0],
                            val_mask=masks[1],
-                           test_mask=masks[2]
+                           test_mask=masks[2],
+                           device=kwargs.get('device', 'cpu'),
                            )
     return ap_loss
