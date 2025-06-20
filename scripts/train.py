@@ -96,7 +96,7 @@ if __name__ == "__main__":
         logging.info("Best-trial weights are here: %s", best_path)
 
         for f in glob.glob("checkpoints/GCN/gcn_trial_*.pt"):
-            if f != best_path:
+            if f != best_path and f.endswith(".pt"):
                 os.remove(f)
 
         os.rename(best_path, "checkpoints/GCN/gcn_best.pt")

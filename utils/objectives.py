@@ -132,8 +132,8 @@ def objective_gcn(trial, **kwargs):
 
     hidden_dim    = _get('hidden_dim',    lambda: trial.suggest_int('hidden_dim',    64,   256))
     embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 32,    128))
-    num_layers    = _get('num_layers',    lambda: trial.suggest_int('num_layers',     1,     3))
-    lr            = _get('lr',            lambda: trial.suggest_float('lr',        1e-2,  1e-1))
+    num_layers    = _get('num_layers',    lambda: trial.suggest_int('num_layers',     2,     3))
+    lr            = _get('lr',            lambda: trial.suggest_float('lr',        1e-3,  1e-1))
     n_epochs      = _get('n_epochs',      lambda: trial.suggest_int('n_epochs',       5,   500))
     dropout       = _get('dropout',       lambda: trial.suggest_float('dropout',     0.0,  0.5))
     in_channels   = graph.num_node_features
