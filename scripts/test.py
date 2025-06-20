@@ -1,6 +1,8 @@
 import torch
 import os
 import sys
+import json
+import glob
 import logging
 import yaml
 import argparse
@@ -47,8 +49,17 @@ if __name__ == "__main__":
         **t_config["dataset"]["kwargs"]
     )
 
-    checkpoint = f"{t_config['pretrained']['checkpoint']}/task/checkpoint.pt"
     task = m_config["model"]["type"]
+    checkpoint = f"{t_config['pretrained']['checkpoint']}/{task}/*_best.pt"
+    if len(glob.glob(checkpoint)) == 0:
+        raise FileNotFoundError(f"No checkpoint found for task {task} at {checkpoint}")
+    elif len(glob.glob(checkpoint)) > 1:
+        logging.warning(f"Multiple checkpoints found for task {task}. Using the first one.")
+        checkpoint = glob.glob(checkpoint)[0]
+    else:
+        checkpoint = glob.glob(checkpoint)[0]
+
+    logging.info(f"Checkpoint found: {checkpoint}")
     result_path = f"{t_config['results']['path']}/{task}"
     device = t_config["device"]
     if isinstance(device, str):
@@ -59,13 +70,19 @@ if __name__ == "__main__":
     logging.info(f"Using device: {device}")
     train_mask, val_mask, test_mask = dataset.get_masks()
     percentiles = t_config["evaluation"]["percentiles"]
-    data = dataset.to_torch_data()
+    data = dataset.to_torch_data().to(device)
+    with open(f"{t_config['results']['path']}/{task}/{task}_training_results.json", "r") as f:
+        studies = json.load(f)
+    config = studies["Parameters"] 
+    config.pop("lr", None)
+    config.pop("n_epochs", None)
 
     if task == "GCN":
         model = GCN(
-            in_channels=data.num_features,
-            out_channels=dataset.num_classes,
-            **m_config["model"]["kwargs"]
+            edge_index=data.edge_index,
+            in_channels=data.num_node_features,
+            output_dim=2,
+            **config
         ).to(device)
     else:
         raise ValueError(f"Unsupported model type: {task}")
@@ -83,15 +100,6 @@ if __name__ == "__main__":
     )
     auc_list, ap_list, precision_dict, recall_dict, f1_dict = results
     logging.info("Evaluation completed.")
-
-    logging.info(f"AUC: {auc_list}")
-    logging.info(f"AP: {ap_list}")
-    for percentile in percentiles:
-        logging.info("" + "="*40)
-        logging.info(f"Precision at {percentile}th percentile: {precision_dict[percentile]}")
-        logging.info(f"Recall at {percentile}th percentile: {recall_dict[percentile]}")
-        logging.info(f"F1 Score at {percentile}th percentile: {f1_dict[percentile]}")
-
     logging.info("Testing process completed successfully.")
 
     # Save results TI

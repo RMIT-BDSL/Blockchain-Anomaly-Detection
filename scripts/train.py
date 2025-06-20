@@ -99,6 +99,7 @@ if __name__ == "__main__":
             if f != best_path:
                 os.remove(f)
 
+        os.rename(best_path, "checkpoints/GCN/gcn_best.pt")
         logging.info(f"✅ Kept only best checkpoint {best_path}")
 
     else:
