@@ -1,0 +1,18 @@
+data:
+  data_path: "datasets/elliptic/elliptic_data.pt"
+  weights_only: false
+
+evaluation:
+  percentiles: [90, 99, 99.9]
+
+device: "cuda:3"
+
+pretrained:
+  checkpoint: "checkpoints"
+
+dataset:
+  type: elliptic
+  kwargs: {}
+
+results:
+  path: "results/"

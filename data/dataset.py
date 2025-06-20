@@ -157,9 +157,12 @@ class BCDataset:
         val_end = train_end + int(split_ratios[1] * N)
 
         mask = torch.zeros(N, dtype=torch.bool)
-        self.train_mask = mask.clone(); self.train_mask[:train_end] = True
-        self.val_mask = mask.clone(); self.val_mask[train_end:val_end] = True
-        self.test_mask = mask.clone(); self.test_mask[val_end:] = True
+        self.train_mask = mask.clone()
+        self.train_mask[:train_end] = True
+        self.val_mask = mask.clone()
+        self.val_mask[train_end:val_end] = True
+        self.test_mask = mask.clone()
+        self.test_mask[val_end:] = True
     
     def get_masks(self):
         """

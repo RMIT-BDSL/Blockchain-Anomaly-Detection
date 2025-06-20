@@ -127,7 +127,8 @@ def objective_gcn(trial, **kwargs):
     def _get(name, suggest_fn):
         return kwargs[name] if name in kwargs else suggest_fn()
 
-    graph = kwargs['graph']
+    graph = kwargs.get('graph', None)
+    result_path   = kwargs.get('result_path', 'results/GCN')
 
     hidden_dim    = _get('hidden_dim',    lambda: trial.suggest_int('hidden_dim',    64,   256))
     embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 32,    128))
@@ -137,7 +138,7 @@ def objective_gcn(trial, **kwargs):
     dropout       = _get('dropout',       lambda: trial.suggest_float('dropout',     0.0,  0.5))
     in_channels   = graph.num_node_features
     output_dim    = 2
-    # batchnorm     = _get('batchnorm',     lambda: trial.suggest_categorical('batchnorm', [True, False]))
+    batchnorm     = _get('batchnorm',     lambda: trial.suggest_categorical('batchnorm', [True, False]))
 
     model_gcn = GCN(
         edge_index=graph.edge_index,
@@ -146,17 +147,25 @@ def objective_gcn(trial, **kwargs):
         output_dim=output_dim,
         embedding_dim=embedding_dim,
         num_layers=num_layers,
-        dropout=dropout
+        dropout=dropout,
+        batchnorm=batchnorm
     )
     
     masks = kwargs.get('masks', None)
-    ap_loss = GNN_features(graph,
-                           model_gcn,
-                           lr,
-                           n_epochs,
-                           train_mask=masks[0],
-                           val_mask=masks[1],
-                           test_mask=masks[2],
-                           device=kwargs.get('device', 'cpu'),
-                           )
+    ap_loss = GNN_features(
+        graph,
+        model_gcn,
+        lr,
+        n_epochs,
+        train_mask=masks[0],
+        val_mask=masks[1],
+        test_mask=masks[2],
+        device=kwargs.get('device', 'cpu'),
+    )
+
+    os.makedirs(result_path, exist_ok=True)
+    state_path = f"{result_path}/gcn_trial_{trial.number}.pt"
+    torch.save(model_gcn.state_dict(), state_path)
+    trial.set_user_attr("model_state_path", state_path)
+    
     return ap_loss

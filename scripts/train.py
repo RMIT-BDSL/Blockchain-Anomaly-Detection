@@ -5,7 +5,8 @@ import torch
 import logging
 import yaml
 import argparse
-import numpy as np
+import json
+import glob
 from yaml import safe_load
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data.dataset import BCDataset
@@ -16,6 +17,7 @@ logging.basicConfig(
     format="%(asctime)s  %(levelname)-5s  %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S"
 )
+# optuna.logging.set_verbosity(optuna.logging.DEBUG)
 
 def parse_args():
     # get logging level from command line arguments
@@ -66,6 +68,7 @@ if __name__ == "__main__":
                 graph     = data,
                 masks     = (train_mask, val_mask, test_mask),
                 device    = device,
+                result_path = 'checkpoints/GCN',
                 # **m_config["model"]["params"],
             )
         study = optuna.create_study(direction="maximize")
@@ -79,12 +82,28 @@ if __name__ == "__main__":
         
         # save results
         os.makedirs("results/GCN", exist_ok=True)
-        with open(f"results/GCN/{task}_training_results.txt", "w") as f:
-            f.write(f"Task: {task}\n")
-            f.write(f"Parameters: {gcn_params}\n")
-            f.write(f"AUC_PRC: {gcn_values}\n") 
+        logging.info(f"Saving GCN training results for task: {task}")
+
+        with open(f"results/GCN/{task}_training_results.json", "w") as f:
+            json.dump({
+                "Task": task,
+                "Parameters": gcn_params,
+                "AUC_PRC": gcn_values,
+                "Study": study.trials_dataframe().to_dict(orient="records")
+            }, f, indent=4, default=str)
+
+        best_path = study.best_trial.user_attrs["model_state_path"]
+        logging.info("Best-trial weights are here: %s", best_path)
+
+        for f in glob.glob("checkpoints/GCN/gcn_trial_*.pt"):
+            if f != best_path:
+                os.remove(f)
+
+        logging.info(f"✅ Kept only best checkpoint {best_path}")
+
     else:
         logging.error(f"Unsupported task: {task}. Supported tasks: GCN.")
         sys.exit(1)
-        
-    logging.info("Training completed successfully.")
+
+    logging.info("✅ Results saved successfully.")
+    logging.info("✅ Training phase completed successfully.")
