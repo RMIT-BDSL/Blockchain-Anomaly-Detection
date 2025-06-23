@@ -82,6 +82,7 @@ if __name__ == "__main__":
             edge_index=data.edge_index,
             in_channels=data.num_node_features,
             output_dim=2,
+            batchnorm=False,
             **config
         ).to(device)
     else:
@@ -96,6 +97,7 @@ if __name__ == "__main__":
         data=data,
         test_mask=test_mask,
         percentile_q_list=percentiles,
+        n_samples=128,
         device=device
     )
     auc_list, ap_list, precision_dict, recall_dict, f1_dict = results

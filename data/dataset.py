@@ -22,7 +22,7 @@ class BCDataset:
         self.type = type.lower()
         transforms = {
             'elliptic': self._load_elliptic,
-            'ibm': self._load_ibm
+            'ibm': self._load_ibm   
         }
         if self.type not in transforms:
             raise ValueError(f"Unsupported dataset type: {self.type}. "
@@ -182,8 +182,7 @@ class BCDataset:
         a single torch_geometric.data.Data object.
         """
         x = self.features
-        if self.type == 'elliptic':
-            x = x[:, 1:94]  # Exclude 'time_step' & summary features
+        x = x[:, 1:]
             
         y = self.labels
         edge_index = self.edge_index
