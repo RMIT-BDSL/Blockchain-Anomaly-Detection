@@ -8,6 +8,6 @@ model:
     out_channels: 32
     num_layers: 2
     dropout: 0.5
-    batchnorm: true
+    # batchnorm: true
     proj_hidden: 64
     proj_out: 32

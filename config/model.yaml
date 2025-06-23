@@ -7,4 +7,4 @@ model:
     output_dim: 2
     num_layers: 2
     dropout: 0.5
-    batchnorm: true
+    # batchnorm: true

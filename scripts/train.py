@@ -1,13 +1,15 @@
+import argparse
+import glob
+import json
+import logging
 import os
 import sys
+
 import optuna
 import torch
-import logging
 import yaml
-import argparse
-import json
-import glob
 from yaml import safe_load
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data.dataset import BCDataset
 from utils.objectives import objective_gcn
@@ -97,7 +99,7 @@ if __name__ == "__main__":
         logging.info("Best-trial weights are here: %s", best_path)
 
         for f in glob.glob("checkpoints/GCN/gcn_trial_*.pt"):
-            if f != best_path and f.endswith(".pt"):
+            if f.replace('\\', '/') != best_path and f.endswith(".pt"):
                 os.remove(f)
 
         os.rename(best_path, "checkpoints/GCN/gcn_best.pt")

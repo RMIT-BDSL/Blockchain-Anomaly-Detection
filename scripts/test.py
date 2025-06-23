@@ -1,16 +1,19 @@
-import torch
+import argparse
+import glob
+import json
+import logging
 import os
 import sys
-import json
-import glob
-import logging
-import yaml
-import argparse
+
 import pandas as pd
+import torch
+import yaml
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from data.dataset import BCDataset
 from yaml import safe_load
+
+from data.dataset import BCDataset
 from model import GCN
 from utils.evaluate import evaluate
 
@@ -82,7 +85,7 @@ if __name__ == "__main__":
             edge_index=data.edge_index,
             in_channels=data.num_node_features,
             output_dim=2,
-            batchnorm=False,
+            # batchnorm=False,
             **config
         ).to(device)
     else:

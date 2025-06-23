@@ -1,11 +1,14 @@
 import os
+
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
-from torch_geometric.data import Data
-from torch.utils.data import DataLoader
 from sklearn.metrics import average_precision_score
+from torch.utils.data import DataLoader
+from torch_geometric.data import Data
+
 from model.GCN import GCN
+
 
 def GNN_features(
     graph: Data,
@@ -150,7 +153,7 @@ def objective_gcn(trial, **kwargs):
         embedding_dim=embedding_dim,
         num_layers=num_layers,
         dropout=dropout,
-        batchnorm=batchnorm
+        # batchnorm=batchnorm
     )
     
     masks = kwargs.get('masks', None)
