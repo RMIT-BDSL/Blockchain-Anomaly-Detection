@@ -100,6 +100,6 @@ class GCN(nn.Module):
 
         h = x
         out = self.out(h)
-        out = F.log_softmax(out, dim=1)
+        # out = F.log_softmax(out, dim=1) doing cross entropy loss outside
 
         return out, h
