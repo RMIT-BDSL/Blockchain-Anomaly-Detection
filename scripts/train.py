@@ -69,6 +69,7 @@ if __name__ == "__main__":
                 masks     = (train_mask, val_mask, test_mask),
                 device    = device,
                 result_path = 'checkpoints/GCN',
+                weight_decay = t_config["optimizer"]["weight_decay"],
                 # **m_config["model"]["params"],
             )
         study = optuna.create_study(direction="maximize")
