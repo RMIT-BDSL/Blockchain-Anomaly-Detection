@@ -1,8 +1,9 @@
 import torch
-from torch import nn
 import torch.nn.functional as F
-from torch_geometric.nn import SAGEConv
 import torch.nn.init as init
+from torch import nn
+from torch_geometric.nn import SAGEConv  # type: ignore
+
 
 class SAGE(nn.Module):
     """

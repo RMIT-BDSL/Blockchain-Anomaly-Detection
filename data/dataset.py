@@ -1,9 +1,12 @@
 import os
+from typing import Literal
+
 import pandas as pd
 import torch
 from torch_geometric.data import Data
-from typing import Literal
+
 from utils.ibm import preprocess_ibm
+
 
 class BCDataset:
     """
@@ -182,7 +185,7 @@ class BCDataset:
         a single torch_geometric.data.Data object.
         """
         x = self.features
-        x = x[:, 1:]
+        # x = x[:, 1:]
             
         y = self.labels
         edge_index = self.edge_index

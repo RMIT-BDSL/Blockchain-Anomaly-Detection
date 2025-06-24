@@ -15,7 +15,7 @@ from yaml import safe_load
 
 from data.dataset import BCDataset
 from model import GCN
-from utils.evaluate import evaluate
+from utils.evaluate import *
 
 logging.basicConfig(
     level=logging.INFO,
@@ -72,21 +72,34 @@ if __name__ == "__main__":
 
     logging.info(f"Using device: {device}")
     train_mask, val_mask, test_mask = dataset.get_masks()
+    train_mask = torch.logical_or(train_mask, val_mask).detach()
     percentiles = t_config["evaluation"]["percentiles"]
     data = dataset.to_torch_data().to(device)
+    data.x = data.x[:, 1:94]
     with open(f"{t_config['results']['path']}/{task}/{task}_training_results.json", "r") as f:
         studies = json.load(f)
-    config = studies["Parameters"] 
-    config.pop("lr", None)
-    config.pop("n_epochs", None)
+    config = studies["Parameters"]
+    # access lr and n_epochs from the config
+    lr = config.pop("lr", None)
+    n_epochs = config.pop("n_epochs", None)
+    # hidden_dim = config.pop("hidden_dim", None)
+    # embedding_dim = config.pop("embedding_dim", None)
+    # num_layers = config.pop("num_layers", None)
+    # dropout = config.pop("dropout", None)
+    # config.pop("lr", None)
+    # config.pop("n_epochs", None)
 
     if task == "GCN":
         model = GCN(
             edge_index=data.edge_index,
             in_channels=data.num_node_features,
             output_dim=2,
-            # batchnorm=False,
             **config
+            # batchnorm=False,
+            # hidden_dim=hidden_dim,
+            # embedding_dim=embedding_dim,
+            # num_layers=num_layers,
+            # dropout=dropout
         ).to(device)
     else:
         raise ValueError(f"Unsupported model type: {task}")
@@ -95,6 +108,7 @@ if __name__ == "__main__":
     logging.info("Model loaded successfully.")
 
     logging.info("Starting evaluation...")
+    # deep_train(data, model, train_mask, n_epochs, lr, batch_size=128, loader=None)
     results = evaluate(
         model=model,
         data=data,
