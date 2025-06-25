@@ -41,8 +41,8 @@ def GNN_features(
 
         if train_loader is None:
             optimizer.zero_grad()
-            out, _ = model(graph.x, graph.edge_index.to(device))
-            loss = criterion(out[train_mask], graph.y[train_mask])
+            y_hat = model(graph.x, graph.edge_index.to(device))
+            loss = criterion(y_hat[train_mask], graph.y[train_mask])
             loss.backward()
             optimizer.step()
             return loss.item()
@@ -50,8 +50,7 @@ def GNN_features(
             for batch in train_loader:
                 batch = batch.to(device)
                 optimizer.zero_grad()
-                out, _ = model(batch.x, batch.edge_index.to(device))
-                y_hat = out[: batch.batch_size]
+                y_hat = model(batch.x, batch.edge_index.to(device))[: batch.batch_size]
                 y_true = batch.y[: batch.batch_size]
                 loss = criterion(y_hat, y_true)
                 loss.backward()
@@ -63,8 +62,8 @@ def GNN_features(
         model.eval()
         if loader is None:
             with torch.no_grad():
-                out, _ = model(graph.x, graph.edge_index)
-                logits = out[mask]
+                y_hat = model(graph.x, graph.edge_index.to(device))
+                logits = y_hat[mask]
                 labels = graph.y[mask]
                 probs = logits.softmax(dim=1)
         else:
@@ -73,8 +72,7 @@ def GNN_features(
             with torch.no_grad():
                 for batch in loader:
                     batch = batch.to(device)
-                    out, _ = model(batch.x, batch.edge_index)
-                    y_hat = out[: batch.batch_size]
+                    y_hat = model(batch.x, batch.edge_index)[: batch.batch_size]
                     all_probs.append(y_hat.softmax(dim=1).cpu())
                     all_labels.append(batch.y[: batch.batch_size].cpu())
             probs = torch.cat(all_probs, dim=0)
@@ -133,17 +131,16 @@ def objective_gcn(trial, **kwargs):
     graph = kwargs.get('graph', None)
     result_path   = kwargs.get('result_path', 'results/GCN')
 
-    hidden_dim    = _get('hidden_dim',    lambda: trial.suggest_int('hidden_dim',    128,   256))
-    embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 64,   128))
+    hidden_dim    = _get('hidden_dim',    lambda: trial.suggest_int('hidden_dim',    128,   384))
+    embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 64,   192))
     num_layers    = _get('num_layers',    lambda: trial.suggest_int('num_layers',     1,     3))
-    lr            = _get('lr',            lambda: trial.suggest_float('lr',        1e-2,  1e-1))
+    lr            = _get('lr',            lambda: trial.suggest_float('lr',        4e-3,  1e-1, log=True))
     n_epochs      = _get('n_epochs',      lambda: trial.suggest_int('n_epochs',      64,   512))
-    dropout       = _get('dropout',       lambda: trial.suggest_float('dropout',    0.0,   0.5))
+    dropout       = _get('dropout',       lambda: trial.suggest_float('dropout',    0.1,   0.7, log=True))
     in_channels   = graph.num_node_features
     output_dim    = 2
-    # batchnorm     = _get('batchnorm',     lambda: trial.suggest_categorical('batchnorm', [True, False]))
-    batchnorm     = False
-    weight_decay  = _get('weight_decay', lambda: trial.suggest_float('weight_decay', 4e-4, 5e-4, log=True))
+    graphnorm     = True
+    weight_decay  = _get('weight_decay', lambda: trial.suggest_float('weight_decay', 1e-5, 1e-2, log=True))
 
     model_gcn = GCN(
         edge_index=graph.edge_index,
@@ -153,7 +150,7 @@ def objective_gcn(trial, **kwargs):
         embedding_dim=embedding_dim,
         num_layers=num_layers,
         dropout=dropout,
-        # batchnorm=batchnorm
+        graphnorm=graphnorm
     )
     
     masks = kwargs.get('masks', None)

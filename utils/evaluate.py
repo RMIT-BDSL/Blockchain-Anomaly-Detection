@@ -42,15 +42,14 @@ def evaluate(data,
         test_mask_new = resample_testmask(test_mask)
         if loader is None:
             model.eval()
-            out, h = model(data.x, data.edge_index.to(device))
-            y_hat = out[test_mask_new].to(device)
+            y_hat = model(data.x, data.edge_index.to(device))
+            y_hat = y_hat[test_mask_new].to(device)
             y = data.y[test_mask_new].to(device)
             
         else:
             batch = next(iter(loader))
             batch = batch.to(device, 'edge_index')
-            out, h = model(batch.x, batch.edge_index)
-            y_hat = out[:batch.batch_size]
+            y_hat = model(batch.x, batch.edge_index)[:batch.batch_size]
             y = batch.y[:batch.batch_size]
 
         y_hat  = y_hat.softmax(dim=1) # Get probability of fraud

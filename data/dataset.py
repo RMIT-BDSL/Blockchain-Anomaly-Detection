@@ -51,9 +51,11 @@ class BCDataset:
         feat_df = feat_df.rename(columns={0: 'txId', 1: 'time_step'})
         feat_array = feat_df.loc[:, 'time_step':].values
         self.features = torch.tensor(feat_array, dtype=torch.float)
-        
-        mapped = class_df['class'].map(classes).astype(int)
-        self.labels = torch.tensor(mapped.values, dtype=torch.long)
+        if self.features.size()[1] == 0:
+            self.features = torch.ones(self.features.shape[0], 1, dtype=torch.float)
+
+        mapped = class_df['class'].map(classes)
+        self.labels = torch.tensor(mapped.values, dtype=torch.int64)
         
         nodes = feat_df['txId']
         map_id = {j: i for i, j in enumerate(nodes)}
@@ -181,9 +183,7 @@ class BCDataset:
         Convert stored tensors (features, labels, edge_index, masks) into
         a single torch_geometric.data.Data object.
         """
-        x = self.features
-        x = x[:, 1:]
-            
+        x = self.features[:, 1:]
         y = self.labels
         edge_index = self.edge_index
 
