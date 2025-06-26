@@ -59,9 +59,7 @@ if __name__ == "__main__":
     logging.info(f"Using device: {device}")
 
     train_mask, val_mask, test_mask = dataset.get_masks()
-    data = dataset.to_torch_data().to(device)
-    # data.x = data.x[:, 1:94]
-    
+    data = dataset.to_torch_data()
     task = m_config["model"]["type"]
     
     if task == "GCN":

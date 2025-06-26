@@ -1,12 +1,9 @@
 import os
-from typing import Literal
-
 import pandas as pd
 import torch
 from torch_geometric.data import Data
-
+from typing import Literal
 from utils.ibm import preprocess_ibm
-
 
 class BCDataset:
     """
