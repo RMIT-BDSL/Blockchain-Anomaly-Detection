@@ -78,7 +78,7 @@ def evaluate(data,
 
 # for experiment purposes
 def deep_train(data, model, train_mask, n_epochs, lr, batch_size, loader = None):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=5e-4)  # Define optimizer.

@@ -15,7 +15,7 @@ from yaml import safe_load
 
 from data.dataset import BCDataset
 from model import GCN
-from utils.evaluate import *
+from utils.evaluate import deep_train, evaluate
 
 logging.basicConfig(
     level=logging.INFO,
