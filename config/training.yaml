@@ -13,7 +13,7 @@ training:
   patience: 64
   n_trials: 100
 
-device: "cuda:2"
+device: "cuda:3"
 
 optimizer:
   type: adam

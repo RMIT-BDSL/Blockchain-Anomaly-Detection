@@ -5,7 +5,7 @@ data:
 evaluation:
   percentiles: [90, 99, 99.9]
 
-device: "cuda:2"
+device: "cuda:3"
 
 pretrained:
   checkpoint: "checkpoints"

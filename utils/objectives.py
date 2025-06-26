@@ -35,6 +35,12 @@ def GNN_features(
     train_losses = []
     val_scores = []
     
+    train_mask = torch.logical_or(train_mask, val_mask).detach()
+    
+    # for experiment purposes, we can use the test mask as validation mask
+    val_mask = test_mask
+    val_loader = test_loader
+    
     def train_epoch():
         model.train()
         total_loss = 0.0
