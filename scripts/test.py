@@ -15,7 +15,7 @@ from yaml import safe_load
 
 from data.dataset import BCDataset
 from model import GCN
-from utils.evaluate import evaluate
+from utils.evaluate import *
 
 logging.basicConfig(
     level=logging.INFO,
@@ -71,14 +71,19 @@ if __name__ == "__main__":
         device = torch.device("cpu")
 
     logging.info(f"Using device: {device}")
+    
     train_mask, val_mask, test_mask = dataset.get_masks()
+    train_mask = torch.logical_or(train_mask, val_mask).detach()
+    
     percentiles = t_config["evaluation"]["percentiles"]
     data = dataset.to_torch_data().to(device)
+    # data.x = data.x[:, 1:]
+    
     with open(f"{t_config['results']['path']}/{task}/{task}_training_results.json", "r") as f:
         studies = json.load(f)
     config = studies["Parameters"] 
-    config.pop("lr", None)
-    config.pop("n_epochs", None)
+    lr = config.pop("lr", None)
+    n_epochs = config.pop("n_epochs", None)
 
     if task == "GCN":
         model = GCN(
@@ -91,7 +96,8 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Unsupported model type: {task}")
     logging.info(f"Loading model from {checkpoint}")
-    model.load_state_dict(torch.load(checkpoint, map_location=device))
+    # model.load_state_dict(torch.load(checkpoint, map_location=device))
+    deep_train(data, model, train_mask, n_epochs, lr, batch_size=128, loader=None)
     logging.info("Model loaded successfully.")
 
     logging.info("Starting evaluation...")
