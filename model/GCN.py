@@ -27,7 +27,7 @@ class GCN(nn.Module):
         output_dim: int,
         num_layers: int,
         dropout: float,
-        graphnorm: bool = True
+        graphnorm: bool = False
     ) -> None:
         """
         Initialize the GCN model.

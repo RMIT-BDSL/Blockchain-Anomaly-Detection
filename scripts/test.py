@@ -83,7 +83,7 @@ if __name__ == "__main__":
     if task == "GCN":
         model = GCN(
             edge_index=data.edge_index,
-            in_channels=data.num_node_features,
+            in_channels=data.num_features,
             output_dim=2,
             # batchnorm=False,
             **config

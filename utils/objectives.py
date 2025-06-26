@@ -131,15 +131,15 @@ def objective_gcn(trial, **kwargs):
     graph = kwargs.get('graph', None)
     result_path   = kwargs.get('result_path', 'results/GCN')
 
-    hidden_dim    = _get('hidden_dim',    lambda: trial.suggest_int('hidden_dim',    128,   384))
-    embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 64,   192))
-    num_layers    = _get('num_layers',    lambda: trial.suggest_int('num_layers',     1,     3))
-    lr            = _get('lr',            lambda: trial.suggest_float('lr',        4e-3,  1e-1, log=True))
+    hidden_dim    = _get('hidden_dim',    lambda: trial.suggest_int('hidden_dim',    128,   256))
+    embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 64,   256))
+    num_layers    = _get('num_layers',    lambda: trial.suggest_int('num_layers',     2,     3))
+    lr            = _get('lr',            lambda: trial.suggest_float('lr',        1e-5,  1e-2, log=True))
     n_epochs      = _get('n_epochs',      lambda: trial.suggest_int('n_epochs',      64,   512))
     dropout       = _get('dropout',       lambda: trial.suggest_float('dropout',    0.1,   0.7, log=True))
-    in_channels   = graph.num_node_features
+    in_channels   = graph.num_features
     output_dim    = 2
-    graphnorm     = True
+    graphnorm     = False
     weight_decay  = _get('weight_decay', lambda: trial.suggest_float('weight_decay', 1e-5, 1e-2, log=True))
 
     model_gcn = GCN(
@@ -163,7 +163,7 @@ def objective_gcn(trial, **kwargs):
         val_mask=masks[1],
         test_mask=masks[2],
         device=kwargs.get('device', 'cpu'),
-        weight_decay=weight_decay,
+        weight_decay=weight_decay
     )
 
     os.makedirs(result_path, exist_ok=True)
