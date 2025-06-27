@@ -73,20 +73,20 @@ class GCN(nn.Module):
         self.dropout = dropout
         self.out = nn.Linear(embedding_dim, output_dim) if output_dim > 0 else None
         self.graphnorm = graphnorm
-        # self.reset_parameters()
+        self.reset_parameters()
 
-    # def reset_parameters(self):
-    #     for conv in self.convs:
-    #         conv.reset_parameters()
+    def reset_parameters(self):
+        for conv in self.convs:
+            conv.reset_parameters()
 
-    #     if self.graphnorm:
-    #         for gn in self.gns:
-    #             gn.reset_parameters()
+        if self.graphnorm:
+            for gn in self.gns:
+                gn.reset_parameters()
 
-    #     # Xavier initialization
-    #     nn.init.xavier_uniform_(self.out.weight) if self.out else None
-    #     if self.out and self.out.bias is not None:
-    #         nn.init.zeros_(self.out.bias)
+        # Xavier initialization
+        nn.init.xavier_uniform_(self.out.weight) if self.out else None
+        if self.out and self.out.bias is not None:
+            nn.init.zeros_(self.out.bias)
 
     def forward(self, x: Tensor, edge_index: Tensor) -> Tuple[Tensor, Tensor]:
         for i, conv in enumerate(self.convs):

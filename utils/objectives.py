@@ -145,7 +145,7 @@ def objective_gcn(trial, **kwargs):
     dropout       = _get('dropout',       lambda: trial.suggest_float('dropout',    0.1,   0.7, log=True))
     in_channels   = graph.num_features
     output_dim    = 2
-    graphnorm     = False
+    graphnorm     = True
     weight_decay  = _get('weight_decay', lambda: trial.suggest_float('weight_decay', 1e-5, 1e-2, log=True))
 
     model_gcn = GCN(
