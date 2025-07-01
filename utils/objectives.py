@@ -7,8 +7,6 @@ from sklearn.metrics import average_precision_score
 from torch.utils.data import DataLoader
 from torch_geometric.data import Data
 
-from model.GCN import GCN
-
 
 def GNN_features(
     graph: Data,
@@ -127,54 +125,65 @@ def GNN_features(
         
     return ap_test
 
-def objective_gcn(trial, **kwargs):
+def objective_gnn(trial, model_cls, model_kwargs=None, **kwargs):
     """
-    Objective function for GCN hyperparameter search with Optuna.
+    Universal Optuna objective for GNN models (GCN, GAT, etc.)
+
+    Args:
+        trial: Optuna trial
+        model_cls: class of the model (e.g., GCN, GAT)
+        model_kwargs: static kwargs passed to model_cls
+        kwargs: contains graph, masks, and training settings
+    Returns:
+        AUPRC or Accuracy on the test set
     """
     def _get(name, suggest_fn):
         return kwargs[name] if name in kwargs else suggest_fn()
 
-    graph = kwargs.get('graph', None)
-    result_path   = kwargs.get('result_path', 'results/GCN')
+    graph = kwargs['graph']
+    result_path = kwargs.get('result_path', 'results/gnn')
+    os.makedirs(result_path, exist_ok=True)
 
-    hidden_dim    = _get('hidden_dim',    lambda: trial.suggest_int('hidden_dim',    128,   256))
-    embedding_dim = _get('embedding_dim', lambda: trial.suggest_int('embedding_dim', 64,   256))
-    num_layers    = _get('num_layers',    lambda: trial.suggest_int('num_layers',     2,     3))
-    lr            = _get('lr',            lambda: trial.suggest_float('lr',        1e-5,  1e-2, log=True))
-    n_epochs      = _get('n_epochs',      lambda: trial.suggest_int('n_epochs',      64,   512))
-    dropout       = _get('dropout',       lambda: trial.suggest_float('dropout',    0.1,   0.7, log=True))
-    in_channels   = graph.num_features
-    output_dim    = 2
-    graphnorm     = True
-    weight_decay  = _get('weight_decay', lambda: trial.suggest_float('weight_decay', 1e-5, 1e-2, log=True))
+    # Suggested hyperparameters
+    hidden_dim     = _get('hidden_dim',     lambda: trial.suggest_int('hidden_dim', 128, 256))
+    embedding_dim  = _get('embedding_dim',  lambda: trial.suggest_int('embedding_dim', 64, 128))
+    num_layers     = _get('num_layers',     lambda: trial.suggest_int('num_layers', 1, 3))
+    lr             = _get('lr',             lambda: trial.suggest_float('lr', 2e-6, 1e-3, log=True))
+    n_epochs       = _get('n_epochs',       lambda: trial.suggest_int('n_epochs', 128, 512))
+    dropout        = _get('dropout',        lambda: trial.suggest_float('dropout', 0.08, 0.64, log=True))
+    weight_decay   = _get('weight_decay',   lambda: trial.suggest_float('weight_decay', 1e-5, 1e-2, log=True))
+    aggregator     = _get('aggregator',     lambda: trial.suggest_categorical('aggregator', ['mean', 'max'])) # Only for SAGE
+    graphnorm      = False
 
-    model_gcn = GCN(
+    # Static model config
+    model_kwargs = model_kwargs or {}
+    model = model_cls(
         edge_index=graph.edge_index,
-        in_channels=in_channels,
+        in_channels=graph.num_features,
         hidden_dim=hidden_dim,
-        output_dim=output_dim,
         embedding_dim=embedding_dim,
+        output_dim=2,
         num_layers=num_layers,
         dropout=dropout,
-        graphnorm=graphnorm
+        graphnorm=graphnorm,
+        aggregator=aggregator,
+        **model_kwargs
     )
-    
-    masks = kwargs.get('masks', None)
-    ap_loss = GNN_features(
-        graph,
-        model_gcn,
-        lr,
-        n_epochs,
-        train_mask=masks[0],
-        val_mask=masks[1],
-        test_mask=masks[2],
+
+    ap_score = GNN_features(
+        graph=graph,
+        model=model,
+        lr=lr,
+        n_epochs=n_epochs,
+        train_mask=kwargs['masks'][0],
+        val_mask=kwargs['masks'][1],
+        test_mask=kwargs['masks'][2],
         device=kwargs.get('device', 'cpu'),
         weight_decay=weight_decay
     )
 
-    os.makedirs(result_path, exist_ok=True)
-    state_path = f"{result_path}/gcn_trial_{trial.number}.pt"
-    torch.save(model_gcn.state_dict(), state_path)
-    trial.set_user_attr("model_state_path", state_path)
-    
-    return ap_loss
+    model_path = os.path.join(result_path, f"{model_cls.__name__.lower()}_trial_{trial.number}.pt")
+    torch.save(model.state_dict(), model_path)
+    trial.set_user_attr("model_state_path", model_path)
+
+    return ap_score

@@ -1,86 +1,85 @@
+from typing import Tuple
+
 import torch
-from torch import nn
 import torch.nn.functional as F
-from torch_geometric.nn import SAGEConv
-import torch.nn.init as init
+from torch import nn, Tensor
+from torch_geometric.nn import SAGEConv, GraphNorm
+
 
 class SAGE(nn.Module):
     """
-    Multi-layer GraphSAGE (a.k.a. GraphSAGE) Network, aligned with the GCN/GAT API:
+    Multi-layer GraphSAGE Network with optional GraphNorm and Xavier initialization.
 
     Args:
-      - in_channels: int — size of each input node feature
-      - hidden_channels: int — size of hidden node embeddings
-      - out_channels: int — number of classes / embedding dim at output
-      - num_layers: int — total number of message-passing layers (>=1)
-      - dropout: float — dropout probability after each hidden layer
-      - batchnorm: bool (default=True) — whether to apply BatchNorm1d after each hidden layer
-      - aggregator: str (default='mean') — aggregation scheme ('mean', 'max', 'pool', 'lstm')
+      edge_index (Tensor): Edge indices of the graph.
+      in_channels (int): Number of input features per node.
+      hidden_dim (int): Number of hidden units per layer.
+      embedding_dim (int): Dimension of the output embeddings.
+      output_dim (int): Number of output classes (0 for no output layer).
+      num_layers (int): Total number of SAGEConv layers (>=1).
+      dropout (float): Dropout probability.
+      graphnorm (bool): Whether to apply GraphNorm after each hidden conv. Default: True.
+      aggregator (str): Aggregation function ('mean', 'max', 'pool', 'lstm'). Default: 'mean'.
     """
     def __init__(
         self,
+        edge_index: Tensor,
         in_channels: int,
-        hidden_channels: int,
-        out_channels: int,
+        hidden_dim: int,
+        embedding_dim: int,
+        output_dim: int,
         num_layers: int,
         dropout: float,
-        batchnorm: bool = True,
-        aggregator: str = 'mean'
-    ):
+        graphnorm: bool = True,
+        aggregator: str = "mean"
+    ) -> None:
         super(SAGE, self).__init__()
         assert num_layers >= 1, "num_layers must be >= 1"
 
         self.convs = nn.ModuleList()
-        self.batchnorm = batchnorm
-        self.bns = nn.ModuleList() if batchnorm else None
-
-        # First layer
-        first_out = out_channels if num_layers == 1 else hidden_channels
-        self.convs.append(
-            SAGEConv(in_channels, first_out, aggr=aggregator)
-        )
-        if batchnorm and num_layers > 1:
-            self.bns.append(nn.BatchNorm1d(first_out))
-
-        # Intermediate layers
-        for _ in range(num_layers - 2):
-            self.convs.append(
-                SAGEConv(hidden_channels, hidden_channels, aggr=aggregator)
-            )
-            if batchnorm:
-                self.bns.append(nn.BatchNorm1d(hidden_channels))
-
-        # Final layer (if more than one)
-        if num_layers > 1:
-            self.convs.append(
-                SAGEConv(hidden_channels, out_channels, aggr=aggregator)
-            )
-
+        self.gns = nn.ModuleList() if graphnorm else None
+        self.edge_index = edge_index
         self.dropout = dropout
-        self.reset_parameters()
+        self.graphnorm = graphnorm
+
+        if num_layers == 1:
+            self.convs.append(SAGEConv(in_channels, embedding_dim, aggr=aggregator))
+        else:
+            # Input layer
+            self.convs.append(SAGEConv(in_channels, hidden_dim, aggr=aggregator))
+            if graphnorm:
+                self.gns.append(GraphNorm(hidden_dim))
+
+            # Hidden layers
+            for _ in range(num_layers - 2):
+                self.convs.append(SAGEConv(hidden_dim, hidden_dim, aggr=aggregator))
+                if graphnorm:
+                    self.gns.append(GraphNorm(hidden_dim))
+
+            # Output layer
+            self.convs.append(SAGEConv(hidden_dim, embedding_dim, aggr=aggregator))
+
+        self.out = nn.Linear(embedding_dim, output_dim) if output_dim > 0 else None
+        # self.reset_parameters()
 
     def reset_parameters(self):
-        # Reset each conv and BN
         for conv in self.convs:
             conv.reset_parameters()
-        if self.batchnorm:
-            for bn in self.bns:
-                bn.reset_parameters()
-        # Xavier on any Linear submodules (if present)
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                init.xavier_uniform_(m.weight)
-                if m.bias is not None:
-                    init.zeros_(m.bias)
+        if self.graphnorm:
+            for gn in self.gns:
+                gn.reset_parameters()
+        if self.out:
+            nn.init.xavier_uniform_(self.out.weight)
+            if self.out.bias is not None:
+                nn.init.zeros_(self.out.bias)
 
-    def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
-        # All but last layer
-        for i, conv in enumerate(self.convs[:-1]):
+    def forward(self, x: Tensor, edge_index: Tensor) -> Tensor:
+        for i, conv in enumerate(self.convs):
             x = conv(x, edge_index)
-            if self.batchnorm:
-                x = self.bns[i](x)
-            x = F.relu(x)
-            x = F.dropout(x, p=self.dropout, training=self.training)
-        # Final layer + log-softmax
-        x = self.convs[-1](x, edge_index)
-        return F.log_softmax(x, dim=-1)
+            if i < len(self.convs) - 1:
+                if self.graphnorm:
+                    x = self.gns[i](x)
+                x = F.relu(x)
+                x = F.dropout(x, p=self.dropout, training=self.training)
+        out = self.out(x) if self.out else x
+        return out

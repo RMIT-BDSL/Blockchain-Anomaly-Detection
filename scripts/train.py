@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+import warnings
 
 import optuna
 import torch
@@ -11,8 +12,18 @@ import yaml
 from yaml import safe_load
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from data.dataset import BCDataset
-from utils.objectives import objective_gcn
+from utils.objectives import objective_gnn
+from model import GCN, GAT, SAGE
+
+warnings.filterwarnings("ignore")
+
+MODEL_REGISTRY = {
+    "GCN": GCN,
+    "GAT": GAT,
+    "SAGE": SAGE
+}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -63,53 +74,58 @@ if __name__ == "__main__":
     # data.x = data.x[:, 1:]
     
     task = m_config["model"]["type"]
-    
-    if task == "GCN":
-        logging.info("Graph Convolutional Network (GCN) selected.")
-        def wrapped_objective(trial: optuna.Trial):
-            return objective_gcn(
-                trial,
-                graph     = data,
-                masks     = (train_mask, val_mask, test_mask),
-                device    = device,
-                result_path = 'checkpoints/GCN',
-                weight_decay = t_config["optimizer"]["weight_decay"],
-                # **m_config["model"]["params"],
-            )
-        study = optuna.create_study(direction="maximize")
-        study.optimize(
-            wrapped_objective,
-            n_trials=t_config["training"]["n_trials"]
-        )
-        gcn_params = study.best_params
-        gcn_values = study.best_value
-        logging.info(f"Best GCN parameters: {gcn_params}, Best value: {gcn_values}")
-        
-        # save results
-        os.makedirs("results/GCN", exist_ok=True)
-        logging.info(f"Saving GCN training results for task: {task}")
 
-        with open(f"results/GCN/{task}_training_results.json", "w") as f:
-            json.dump({
-                "Task": task,
-                "Parameters": gcn_params,
-                "AUC_PRC": gcn_values,
-                "Study": study.trials_dataframe().to_dict(orient="records")
-            }, f, indent=4, default=str)
-
-        best_path = study.best_trial.user_attrs["model_state_path"]
-        logging.info("Best-trial weights are here: %s", best_path)
-
-        for f in glob.glob("checkpoints/GCN/gcn_trial_*.pt"):
-            if f.replace('\\', '/') != best_path and f.endswith(".pt"):
-                os.remove(f)
-
-        os.rename(best_path, "checkpoints/GCN/gcn_best.pt")
-        logging.info(f"✅ Kept only best checkpoint {best_path}")
-
-    else:
-        logging.error(f"Unsupported task: {task}. Supported tasks: GCN.")
+    if task not in MODEL_REGISTRY:
+        logging.error(f"Unsupported model type: {task}")
         sys.exit(1)
 
+    model = MODEL_REGISTRY[task]
+    logging.info(f"Selected model: {task}")
+    
+    def wrapped_objective(trial: optuna.Trial):
+        return objective_gnn(
+            trial,
+            model_cls = model,
+            # model_kwargs = m_config["model"]["params"],
+            graph     = data,
+            masks     = (train_mask, val_mask, test_mask),
+            device    = device,
+            result_path = f"checkpoints/{task}",
+            weight_decay = t_config["optimizer"]["weight_decay"],
+            # **m_config["model"]["params"],
+        )
+
+    study = optuna.create_study(direction="maximize")
+    study.optimize(
+        wrapped_objective,
+        n_trials=t_config["training"]["n_trials"]
+    )
+
+    params = study.best_params
+    values = study.best_value
+    logging.info(f"Best parameters: {params}, Best value: {values}")
+    
+    # save results
+    result_dir = f"results/{task}"
+    os.makedirs(result_dir, exist_ok=True)
+
+    with open(f"{result_dir}/{task}_training_results.json", "w") as f:
+        json.dump({
+            "Task": task,
+            "Parameters": params,
+            "AUC_PRC": values,
+            "Study": study.trials_dataframe().to_dict(orient="records")
+        }, f, indent=4, default=str)
+
+    best_path = study.best_trial.user_attrs["model_state_path"]
+    logging.info("Best-trial weights are here: %s", best_path)
+
+    checkpoint_dir = f"checkpoints/{task}"
+    for f in glob.glob(f"{checkpoint_dir}/{task.lower()}_trial_*.pt"):
+        if f.replace('\\', '/') != best_path and f.endswith(".pt"):
+            os.remove(f)
+
+    os.rename(best_path, f"{checkpoint_dir}/{task.lower()}_best.pt")
+    logging.info(f"✅ Kept only best checkpoint {best_path}")
     logging.info("✅ Results saved successfully.")
     logging.info("✅ Training phase completed successfully.")

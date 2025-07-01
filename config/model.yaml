@@ -2,7 +2,7 @@ pretrained: false
 checkpoint: "checkpoints/elliptic"
 
 model:
-  type: "GCN"
+  type: "SAGE"
   params:
     output_dim: 2
     num_layers: 2

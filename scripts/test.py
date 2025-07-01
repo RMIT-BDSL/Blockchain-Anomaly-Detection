@@ -14,8 +14,14 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from yaml import safe_load
 
 from data.dataset import BCDataset
-from model import GCN
-from utils.evaluate import deep_train, evaluate
+from model import GCN, GAT, SAGE
+from utils.evaluate import evaluate
+
+MODEL_REGISTRY = {
+    "GCN": GCN,
+    "GAT": GAT,
+    "SAGE": SAGE
+}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,6 +59,12 @@ if __name__ == "__main__":
     )
 
     task = m_config["model"]["type"]
+    if task not in MODEL_REGISTRY:
+        logging.error(f"Unsupported model type: {task}")
+        sys.exit(1)
+
+    model = MODEL_REGISTRY[task]
+
     checkpoint = f"{t_config['pretrained']['checkpoint']}/{task}/*_best.pt"
     if len(glob.glob(checkpoint)) == 0:
         raise FileNotFoundError(f"No checkpoint found for task {task} at {checkpoint}")
@@ -90,20 +102,16 @@ if __name__ == "__main__":
     # num_layers = config.pop("num_layers", None)
     # dropout = config.pop("dropout", None)
 
-    if task == "GCN":
-        model = GCN(
-            edge_index=data.edge_index,
-            in_channels=data.num_features,
-            output_dim=2,
-            # batchnorm=False,
-            **config
-        ).to(device)
-    else:
-        raise ValueError(f"Unsupported model type: {task}")
     logging.info(f"Loading model from {checkpoint}")
-    
-    # model.load_state_dict(torch.load(checkpoint, map_location=device))
-    deep_train(data, model, train_mask, n_epochs, lr, batch_size=128, loader=None)
+    model = model(
+        edge_index=data.edge_index,
+        in_channels=data.num_features,
+        output_dim=2,
+        graphnorm=True,
+        **config
+    ).to(device)
+    model.load_state_dict(torch.load(checkpoint, map_location=device))
+    # deep_train(data, model, train_mask, n_epochs, lr, batch_size=128, loader=None)
     print(model)
     logging.info("Model loaded successfully.")
 
@@ -113,7 +121,7 @@ if __name__ == "__main__":
         data=data,
         test_mask=test_mask,
         percentile_q_list=percentiles,
-        n_samples=128,
+        n_samples=100,
         device=device
     )
     auc_list, ap_list, precision_dict, recall_dict, f1_dict = results
