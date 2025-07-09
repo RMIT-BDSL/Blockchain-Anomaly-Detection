@@ -182,27 +182,39 @@ def load_dataset(name: str):
 
         if os.path.exists(f"./dataset/{name}/train_sub_G.pt") and name != "hpo_neuro":
             print(f"Loading preprocessed dataset {name}...")
+            
+            print(f"Loading: ./dataset/{name}/train_sub_G.pt")
             train_sub_G = torch.load(f"./dataset/{name}/train_sub_G.pt")
-            train_sub_G_label = torch.load(
-                f"./dataset/{name}/train_sub_G_label.pt")
+            print("Done Loading train_sub_G")
+            
+            print(f"Loading: ./dataset/{name}/train_sub_G_label.pt")
+            train_sub_G_label = torch.load(f"./dataset/{name}/train_sub_G_label.pt")
+            print("Done Loading train_sub_G_label")
+            
+            print(f"Loading: ./dataset/{name}/val_sub_G.pt")
             val_sub_G = torch.load(f"./dataset/{name}/val_sub_G.pt")
-            val_sub_G_label = torch.load(
-                f"./dataset/{name}/val_sub_G_label.pt")
+            print("Done Loading val_sub_G")
+            
+            print(f"Loading: ./dataset/{name}/val_sub_G_label.pt")
+            val_sub_G_label = torch.load(f"./dataset/{name}/val_sub_G_label.pt")
+            print("Done Loading val_sub_G_label")
+            
+            print(f"Loading: ./dataset/{name}/test_sub_G.pt")
             test_sub_G = torch.load(f"./dataset/{name}/test_sub_G.pt")
-            test_sub_G_label = torch.load(
-                f"./dataset/{name}/test_sub_G_label.pt")
+            print("Done Loading test_sub_G")
+            
+            print(f"Loading: ./dataset/{name}/test_sub_G_label.pt")
+            test_sub_G_label = torch.load(f"./dataset/{name}/test_sub_G_label.pt")
+            print("Done Loading test_sub_G_label")
         else:
             print(f"Preprocessing dataset {name}...")
-            train_sub_G, train_sub_G_label, val_sub_G, val_sub_G_label, test_sub_G, test_sub_G_label = read_subgraphs(
-                f"./dataset/{name}/subgraphs.pth")
+            train_sub_G, train_sub_G_label, val_sub_G, val_sub_G_label, test_sub_G, test_sub_G_label = read_subgraphs(f"./dataset/{name}/subgraphs.pth")
             torch.save(train_sub_G, f"./dataset/{name}/train_sub_G.pt")
-            torch.save(train_sub_G_label,
-                       f"./dataset/{name}/train_sub_G_label.pt")
+            torch.save(train_sub_G_label,f"./dataset/{name}/train_sub_G_label.pt")
             torch.save(val_sub_G, f"./dataset/{name}/val_sub_G.pt")
             torch.save(val_sub_G_label, f"./dataset/{name}/val_sub_G_label.pt")
             torch.save(test_sub_G, f"./dataset/{name}/test_sub_G.pt")
-            torch.save(test_sub_G_label,
-                       f"./dataset/{name}/test_sub_G_label.pt")
+            torch.save(test_sub_G_label,f"./dataset/{name}/test_sub_G_label.pt")
         mask = torch.cat(
             (torch.zeros(len(train_sub_G_label), dtype=torch.int64),
              torch.ones(len(val_sub_G_label), dtype=torch.int64),
