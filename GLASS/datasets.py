@@ -124,7 +124,7 @@ def load_dataset(name: str):
         return BaseGraph(torch.empty(
             (len(node), 1, 0)), torch.from_numpy(edge),
                          torch.ones(edge.shape[1]), subG_pad, subGLabel, mask)
-    elif name in ["ppi_bp", "hpo_metab", "hpo_neuro", "em_user"]:
+    elif name in ["ppi_bp", "hpo_metab", "hpo_neuro", "em_user", "elliptic"]:
         multilabel = False
 
         # copied from https://github.com/mims-harvard/SubGNN/blob/main/SubGNN/subgraph_utils.py

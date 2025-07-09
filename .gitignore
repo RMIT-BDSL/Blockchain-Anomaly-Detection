@@ -182,3 +182,4 @@ checkpoints/
 datasets/
 *.txt
 *.pkl
+*.pth

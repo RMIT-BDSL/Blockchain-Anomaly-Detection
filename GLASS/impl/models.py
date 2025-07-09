@@ -3,8 +3,80 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn.norm import GraphNorm, GraphSizeNorm
-from torch_geometric.nn.glob.glob import global_mean_pool, global_add_pool, global_max_pool
+from torch_geometric.utils import scatter
+# from torch_geometric.nn.glob.glob import global_mean_pool, global_add_pool, global_max_pool
 from .utils import pad2batch
+
+def global_add_pool(x, batch, size=None):
+    r"""Returns batch-wise graph-level-outputs by adding node features
+    across the node dimension, so that for a single graph
+    :math:`\mathcal{G}_i` its output is computed by
+
+    .. math::
+        \mathbf{r}_i = \sum_{n=1}^{N_i} \mathbf{x}_n
+
+    Args:
+        x (Tensor): Node feature matrix
+            :math:`\mathbf{X} \in \mathbb{R}^{(N_1 + \ldots + N_B) \times F}`.
+        batch (LongTensor): Batch vector :math:`\mathbf{b} \in {\{ 0, \ldots,
+            B-1\}}^N`, which assigns each node to a specific example.
+        size (int, optional): Batch-size :math:`B`.
+            Automatically calculated if not given. (default: :obj:`None`)
+
+    :rtype: :class:`Tensor`
+    """
+
+    size = batch.max().item() + 1 if size is None else size
+    return scatter('add', x, batch, dim=0, dim_size=size)
+
+
+
+def global_mean_pool(x, batch, size=None):
+    r"""Returns batch-wise graph-level-outputs by averaging node features
+    across the node dimension, so that for a single graph
+    :math:`\mathcal{G}_i` its output is computed by
+
+    .. math::
+        \mathbf{r}_i = \frac{1}{N_i} \sum_{n=1}^{N_i} \mathbf{x}_n
+
+    Args:
+        x (Tensor): Node feature matrix
+            :math:`\mathbf{X} \in \mathbb{R}^{(N_1 + \ldots + N_B) \times F}`.
+        batch (LongTensor): Batch vector :math:`\mathbf{b} \in {\{ 0, \ldots,
+            B-1\}}^N`, which assigns each node to a specific example.
+        size (int, optional): Batch-size :math:`B`.
+            Automatically calculated if not given. (default: :obj:`None`)
+
+    :rtype: :class:`Tensor`
+    """
+
+    size = batch.max().item() + 1 if size is None else size
+    return scatter('mean', x, batch, dim=0, dim_size=size)
+
+
+
+def global_max_pool(x, batch, size=None):
+    r"""Returns batch-wise graph-level-outputs by taking the channel-wise
+    maximum across the node dimension, so that for a single graph
+    :math:`\mathcal{G}_i` its output is computed by
+
+    .. math::
+        \mathbf{r}_i = \mathrm{max}_{n=1}^{N_i} \, \mathbf{x}_n
+
+    Args:
+        x (Tensor): Node feature matrix
+            :math:`\mathbf{X} \in \mathbb{R}^{(N_1 + \ldots + N_B) \times F}`.
+        batch (LongTensor): Batch vector :math:`\mathbf{b} \in {\{ 0, \ldots,
+            B-1\}}^N`, which assigns each node to a specific example.
+        size (int, optional): Batch-size :math:`B`.
+            Automatically calculated if not given. (default: :obj:`None`)
+
+    :rtype: :class:`Tensor`
+    """
+
+    size = batch.max().item() + 1 if size is None else size
+    return scatter('max', x, batch, dim=0, dim_size=size)
+
 
 
 class Seq(nn.Module):
@@ -233,7 +305,7 @@ class EmbZGConv(nn.Module):
         self.emb_gn.reset_parameters()
         for conv in self.convs:
             conv.reset_parameters()
-        if not (self.gns is None):
+        if self.gns is not None:
             for gn in self.gns:
                 gn.reset_parameters()
 
@@ -253,7 +325,7 @@ class EmbZGConv(nn.Module):
         for layer, conv in enumerate(self.convs[:-1]):
             x = conv(x, edge_index, edge_weight, mask)
             xs.append(x)
-            if not (self.gns is None):
+            if self.gns is not None:
                 x = self.gns[layer](x)
             x = self.activation(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
@@ -262,12 +334,12 @@ class EmbZGConv(nn.Module):
 
         if self.jk:
             x = torch.cat(xs, dim=-1)
-            if not (self.gns is None):
+            if self.gns is not None:
                 x = self.gns[-1](x)
             return x
         else:
             x = xs[-1]
-            if not (self.gns is None):
+            if self.gns is not None:
                 x = self.gns[-1](x)
             return x
 
@@ -452,7 +524,7 @@ class EmbGConv(torch.nn.Module):
     def reset_parameters(self):
         for conv in self.convs:
             conv.reset_parameters()
-        if not (self.gns is None):
+        if self.gns is not None:
             for gn in self.gns:
                 gn.reset_parameters()
 
@@ -463,7 +535,7 @@ class EmbGConv(torch.nn.Module):
                       training=self.training)
         for layer, conv in enumerate(self.convs[:-1]):
             x = conv(x, edge_index, edge_weight)
-            if not (self.gns is None):
+            if self.gns is not None:
                 x = self.gns[layer](x)
             xs.append(x)
             x = self.activation(x)
