@@ -4,8 +4,9 @@ import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn.norm import GraphNorm, GraphSizeNorm
 from torch_geometric.utils import scatter
-# from torch_geometric.nn.glob.glob import global_mean_pool, global_add_pool, global_max_pool
+
 from .utils import pad2batch
+
 
 def global_add_pool(x, batch, size=None):
     r"""Returns batch-wise graph-level-outputs by adding node features

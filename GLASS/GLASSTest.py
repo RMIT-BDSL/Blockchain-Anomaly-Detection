@@ -1,15 +1,17 @@
-from impl import models, SubGDataset, train, metrics, utils, config
-import datasets
-import torch
-from torch.optim import Adam, lr_scheduler
-from torch.nn import CrossEntropyLoss, BCEWithLogitsLoss
 import argparse
-import torch.nn as nn
 import functools
-import numpy as np
-import time
 import random
+import time
+
+import numpy as np
+import torch
+import torch.nn as nn
 import yaml
+from impl import SubGDataset, config, metrics, models, train, utils
+from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss
+from torch.optim import Adam, lr_scheduler
+
+import datasets
 
 parser = argparse.ArgumentParser(description='')
 # Dataset settings
@@ -46,6 +48,7 @@ if args.use_seed:
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.enabled = False
 
+print("args", args)
 baseG = datasets.load_dataset(args.dataset)
 
 trn_dataset, val_dataset, tst_dataset = None, None, None

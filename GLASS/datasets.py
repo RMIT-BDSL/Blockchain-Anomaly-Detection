@@ -1,11 +1,14 @@
-import numpy as np
-from torch.nn.utils.rnn import pad_sequence
-from torch.nn.functional import one_hot
-import torch
-from torch_geometric.utils import is_undirected, to_undirected, negative_sampling, to_networkx
-from torch_geometric.data import Data
-import networkx as nx
 import os
+
+import networkx as nx
+import numpy as np
+import torch
+from torch.nn.functional import one_hot
+from torch.nn.utils.rnn import pad_sequence
+from torch_geometric.data import Data
+from torch_geometric.utils import (is_undirected, negative_sampling,
+                                   to_networkx, to_undirected)
+from tqdm.auto import tqdm
 
 
 class BaseGraph(Data):
@@ -126,7 +129,7 @@ def load_dataset(name: str):
                          torch.ones(edge.shape[1]), subG_pad, subGLabel, mask)
     elif name in ["ppi_bp", "hpo_metab", "hpo_neuro", "em_user", "elliptic"]:
         multilabel = False
-
+        print (f"Loading dataset {name}...")
         # copied from https://github.com/mims-harvard/SubGNN/blob/main/SubGNN/subgraph_utils.py
         def read_subgraphs(sub_f, split=True):
             label_idx = 0
@@ -138,7 +141,7 @@ def load_dataset(name: str):
             # Parse data
             with open(sub_f) as fin:
                 subgraph_idx = 0
-                for line in fin:
+                for line in tqdm(fin):
                     nodes = [
                         int(n) for n in line.split("\t")[0].split("-")
                         if n != ""
@@ -177,8 +180,8 @@ def load_dataset(name: str):
 
             return train_sub_G, train_sub_G_label, val_sub_G, val_sub_G_label, test_sub_G, test_sub_G_label
 
-        if os.path.exists(
-                f"./dataset/{name}/train_sub_G.pt") and name != "hpo_neuro":
+        if os.path.exists(f"./dataset/{name}/train_sub_G.pt") and name != "hpo_neuro":
+            print(f"Loading preprocessed dataset {name}...")
             train_sub_G = torch.load(f"./dataset/{name}/train_sub_G.pt")
             train_sub_G_label = torch.load(
                 f"./dataset/{name}/train_sub_G_label.pt")
@@ -189,6 +192,7 @@ def load_dataset(name: str):
             test_sub_G_label = torch.load(
                 f"./dataset/{name}/test_sub_G_label.pt")
         else:
+            print(f"Preprocessing dataset {name}...")
             train_sub_G, train_sub_G_label, val_sub_G, val_sub_G_label, test_sub_G, test_sub_G_label = read_subgraphs(
                 f"./dataset/{name}/subgraphs.pth")
             torch.save(train_sub_G, f"./dataset/{name}/train_sub_G.pt")

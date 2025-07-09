@@ -1,4 +1,5 @@
 import torch
+from tqdm.auto import tqdm
 
 
 def train(optimizer, model, dataloader, loss_fn):
@@ -7,14 +8,23 @@ def train(optimizer, model, dataloader, loss_fn):
     '''
     model.train()
     total_loss = []
-    for batch in dataloader:
+
+    num_batches = 0
+    for batch in tqdm(dataloader):
         optimizer.zero_grad()
         pred = model(*batch[:-1], id=0)
         loss = loss_fn(pred, batch[-1])
         loss.backward()
         total_loss.append(loss.detach().item())
         optimizer.step()
+        num_batches += 1
+
+    if num_batches == 0:
+        print("[Warning] No batch in dataloader!")
+        return 0.0
+
     return sum(total_loss) / len(total_loss)
+
 
 
 @torch.no_grad()
