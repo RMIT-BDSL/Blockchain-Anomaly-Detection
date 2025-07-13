@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import torch
 from torch_geometric.data import Data
-from typing import Literal
+from typing import Literal, Optional
 from utils.ibm import preprocess_ibm
 
 class BCDataset:
@@ -194,3 +194,77 @@ class BCDataset:
         data.test_mask  = self.test_mask.clone().to(torch.bool)
 
         return data
+    
+class SubgraphDataset(BCDataset):
+    """
+    Inherits from BCDataset; transforms the node-level graph
+    into pooled subgraph features per original node.
+    """
+    def __init__(self,
+                 type: str,
+                 hops: int = 6,
+                 max_nodes: Optional[int] = None,
+                 **kwargs):
+        # Load full graph data
+        super().__init__(type=type, **kwargs)
+        full = self.to_torch_data()
+        self.hops = hops
+        self.max_nodes = max_nodes
+        self.cache_path = kwargs.get('cache_path', 'subgraphs_cache.pt')
+
+        # Prepare or load cached subgraph data
+        if os.path.exists(self.cache_path):
+            feats, labs, tr, va, te = torch.load(self.cache_path)
+        else:
+            feats, labs, tr, va, te = self._extract_subgraphs(full)
+            torch.save((feats, labs, tr, va, te), self.cache_path)
+
+        # Assign aggregated subgraph features & labels
+        self.features   = feats
+        self.labels     = torch.tensor(labs, dtype=torch.long)
+        self.train_mask = torch.tensor(tr, dtype=torch.bool)
+        self.val_mask   = torch.tensor(va, dtype=torch.bool)
+        self.test_mask  = torch.tensor(te, dtype=torch.bool)
+        self.edge_index = torch.empty((2,0), dtype=torch.long)
+
+    def _extract_subgraphs(self, data: Data):
+        N = data.num_nodes
+        x_all = data.x
+        y_all = data.y
+        ei = data.edge_index
+        # Build adjacency list
+        adj = [[] for _ in range(N)]
+        for u,v in ei.t().tolist():
+            adj[u].append(v)
+            adj[v].append(u)
+
+        feats, labs, tr_mask, va_mask, te_mask = [], [], [], [], []
+        for nid in range(N):
+            if not (data.train_mask[nid] or data.val_mask[nid] or data.test_mask[nid]):
+                continue
+            # BFS up to hops
+            visited = {nid}
+            frontier = {nid}
+            for _ in range(self.hops):
+                nxt = set()
+                for u in frontier:
+                    for v in adj[u]:
+                        if v not in visited:
+                            visited.add(v)
+                            nxt.add(v)
+                frontier = nxt
+                if not frontier: 
+                    break
+            nodes = list(visited)
+            if self.max_nodes and len(nodes)>self.max_nodes:
+                nodes = nodes[:self.max_nodes]
+
+            # Pool node features within subgraph
+            x_sub = x_all[nodes].mean(dim=0)
+            feats.append(x_sub)
+            labs.append(int(y_all[nid].item()))
+            tr_mask.append(bool(data.train_mask[nid].item()))
+            va_mask.append(bool(data.val_mask[nid].item()))
+            te_mask.append(bool(data.test_mask[nid].item()))
+
+        return torch.stack(feats), labs, tr_mask, va_mask, te_mask
