@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from yaml import safe_load
 
 from data.dataset import BCDataset
-from model import GCN, GAT, SAGE
+from model import GAT, GCN, SAGE
 from utils.evaluate import evaluate
 
 MODEL_REGISTRY = {
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     
     percentiles = t_config["evaluation"]["percentiles"]
     data = dataset.to_torch_data().to(device)
-    # data.x = data.x[:, 1:94]
+    data.x = data.x[:, 1:]
     
     with open(f"{t_config['results']['path']}/{task}/{task}_training_results.json", "r") as f:
         studies = json.load(f)
@@ -107,7 +107,7 @@ if __name__ == "__main__":
         edge_index=data.edge_index,
         in_channels=data.num_features,
         output_dim=2,
-        graphnorm=True,
+        graphnorm=False,
         **config
     ).to(device)
     model.load_state_dict(torch.load(checkpoint, map_location=device))

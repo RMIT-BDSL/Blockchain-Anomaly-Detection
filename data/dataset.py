@@ -1,9 +1,12 @@
 import os
+from typing import Literal, Optional
+
 import pandas as pd
 import torch
 from torch_geometric.data import Data
-from typing import Literal, Optional
+
 from utils.ibm import preprocess_ibm
+
 
 class BCDataset:
     """
@@ -202,7 +205,7 @@ class SubgraphDataset(BCDataset):
     """
     def __init__(self,
                  type: str,
-                 hops: int = 6,
+                 hops: int = 32,
                  max_nodes: Optional[int] = None,
                  **kwargs):
         # Load full graph data
@@ -267,4 +270,6 @@ class SubgraphDataset(BCDataset):
             va_mask.append(bool(data.val_mask[nid].item()))
             te_mask.append(bool(data.test_mask[nid].item()))
 
+        print (f"Extracted {len(feats)} subgraphs with max hops={self.hops} and max nodes={self.max_nodes}")
+        print (len(feats), len(labs), len(tr_mask), len(va_mask), len(te_mask))
         return torch.stack(feats), labs, tr_mask, va_mask, te_mask

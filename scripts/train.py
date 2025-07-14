@@ -13,9 +13,9 @@ from yaml import safe_load
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from data.dataset import BCDataset
+from data.dataset import BCDataset, SubgraphDataset
+from model import GAT, GCN, SAGE
 from utils.objectives import objective_gnn
-from model import GCN, GAT, SAGE
 
 warnings.filterwarnings("ignore")
 
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     logging.info("Training configuration:\n%s", yaml.dump(t_config, sort_keys=False))
     logging.info("Model configuration:\n%s", yaml.dump(m_config, sort_keys=False))
 
-    dataset = BCDataset(
+    dataset = SubgraphDataset(
         type=t_config["dataset"]["type"],
         **t_config["dataset"]["kwargs"]
     )
@@ -122,8 +122,11 @@ if __name__ == "__main__":
 
     checkpoint_dir = f"checkpoints/{task}"
     for f in glob.glob(f"{checkpoint_dir}/{task.lower()}_trial_*.pt"):
-        if f.replace('\\', '/') != best_path and f.endswith(".pt"):
-            os.remove(f)
+        if f != best_path and f.endswith(".pt"):
+            continue
+            # os.remove(f)
+        else:
+            print(f)
 
     os.rename(best_path, f"{checkpoint_dir}/{task.lower()}_best.pt")
     logging.info(f"✅ Kept only best checkpoint {best_path}")

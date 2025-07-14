@@ -2,8 +2,8 @@ from typing import Tuple
 
 import torch
 import torch.nn.functional as F
-from torch import nn, Tensor
-from torch_geometric.nn import SAGEConv, GraphNorm
+from torch import Tensor, nn
+from torch_geometric.nn import GraphNorm, SAGEConv
 
 
 class SAGE(nn.Module):
@@ -30,7 +30,7 @@ class SAGE(nn.Module):
         output_dim: int,
         num_layers: int,
         dropout: float,
-        graphnorm: bool = True,
+        graphnorm: bool = False,
         aggregator: str = "mean"
     ) -> None:
         super(SAGE, self).__init__()
