@@ -123,10 +123,7 @@ if __name__ == "__main__":
     checkpoint_dir = f"checkpoints/{task}"
     for f in glob.glob(f"{checkpoint_dir}/{task.lower()}_trial_*.pt"):
         if f != best_path and f.endswith(".pt"):
-            continue
-            # os.remove(f)
-        else:
-            print(f)
+            os.remove(f)
 
     os.rename(best_path, f"{checkpoint_dir}/{task.lower()}_best.pt")
     logging.info(f"✅ Kept only best checkpoint {best_path}")
